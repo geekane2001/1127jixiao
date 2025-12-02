@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import History from './History';
 
-const API_URL = 'https://1127jixiao.2963781804.workers.dev';
+const API_URL = 'https://jxbk.jingchaowan.dpdns.org';
 
 const MainContent = ({ selectedOperator }) => {
     const [kpiTemplate, setKpiTemplate] = useState([]);
