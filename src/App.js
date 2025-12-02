@@ -3,7 +3,7 @@ import './App.css';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 
-const API_URL = 'https://1127jixiao.2963781804.workers.dev/';
+const API_URL = 'https://jxbk.jingchaowan.dpdns.org/';
 
 function App() {
   const [operators, setOperators] = useState([]);
