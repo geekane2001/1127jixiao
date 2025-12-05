@@ -16,6 +16,10 @@ const MainContent = ({ selectedOperator }) => {
     const [loading, setLoading] = useState(false);
     const [view, setView] = useState('main'); // 'main' or 'history'
 
+    const verificationKpi = useMemo(() =>
+        kpiTemplate.find(item => item.indicator.includes('核销总目标')),
+    [kpiTemplate]);
+
     const calculateScores = useCallback((template, perfData, operator) => {
         const newScores = {};
         let processTotal = 0;
@@ -35,7 +39,12 @@ const MainContent = ({ selectedOperator }) => {
                     const formula = item.formula.toLowerCase();
                     const weight = item.weight;
                     const avg_score = operator?.avg_score || 0;
-                    const total_salary = operator?.total_salary || 0;
+                    
+                    let total_salary = operator?.total_salary || 0;
+                    if (item.indicator.includes('核销总目标') && !item.is_auto_calculated) {
+                        total_salary = parseFloat(perfData['verification_total']) || 0;
+                    }
+
                     const quit_store_count = parseFloat(perfData?.quit_store_count) || 0;
                     const sales_total = parseFloat(perfData?.sales_total) || 0;
                     
@@ -173,10 +182,20 @@ const MainContent = ({ selectedOperator }) => {
             }
             return 'N/A';
         }
-        return <input 
-            type="text" 
-            value={performanceData[item.editable_field_key] || ''} 
-            onChange={(e) => handleDataChange(item.editable_field_key, e.target.value)}
+        
+        let key_to_use = item.editable_field_key;
+        if (item.indicator.includes('核销总目标')) {
+            key_to_use = 'verification_total';
+        }
+
+        if (!key_to_use) {
+            return 'N/A (配置错误)';
+        }
+
+        return <input
+            type="text"
+            value={performanceData[key_to_use] || ''}
+            onChange={(e) => handleDataChange(key_to_use, e.target.value)}
         />;
     };
 
@@ -199,6 +218,47 @@ const MainContent = ({ selectedOperator }) => {
         handleDataChange('egp_score', newEgpScore);
     };
 
+    const handleToggleAutoCalculate = async () => {
+        if (!selectedOperator || !verificationKpi) return;
+
+        const newIsAutoCalculated = verificationKpi.is_auto_calculated === 1 ? 0 : 1;
+
+        setLoading(true);
+        try {
+            const response = await fetch(`${API_URL}/kpi-template/set-auto-calculate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    person_name: selectedOperator.operator_name,
+                    indicator: verificationKpi.indicator,
+                    is_auto_calculated: newIsAutoCalculated
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || '更新失败');
+            }
+
+            const updatedTemplate = kpiTemplate.map(item =>
+                item.id === verificationKpi.id
+                    ? { ...item, is_auto_calculated: newIsAutoCalculated }
+                    : item
+            );
+            setKpiTemplate(updatedTemplate);
+            
+            // Recalculate scores with the updated template and existing data
+            calculateScores(updatedTemplate, performanceData, selectedOperator);
+
+            alert(`成功切换到${newIsAutoCalculated === 0 ? '手动' : '自动'}核销模式。`);
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="main-content">
             <div className="main-header">
@@ -217,6 +277,16 @@ const MainContent = ({ selectedOperator }) => {
                             <option value="0">0</option>
                         </select>
                     </div>
+                    {verificationKpi && (
+                        <button
+                            className="toggle-auto-calc-button"
+                            onClick={handleToggleAutoCalculate}
+                            style={{marginLeft: '10px', backgroundColor: verificationKpi.is_auto_calculated ? '#28a745' : '#ffc107', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer'}}
+                            disabled={loading}
+                        >
+                            {verificationKpi.is_auto_calculated ? '无刷单(自动核销)' : '有刷单(手动核销)'}
+                        </button>
+                    )}
                     <button className="save-button" onClick={handleSave} disabled={loading}>
                         {loading ? '保存中...' : '保存更改'}
                     </button>
