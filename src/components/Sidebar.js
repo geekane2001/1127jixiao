@@ -6,7 +6,14 @@ const Sidebar = ({ operators, selectedOperator, onOperatorChange }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState('全部');
   const fileInputRef = useRef(null);
+
+  const departments = ['全部', ...new Set(operators.map(op => op.department || '运营部'))];
+  
+  const filteredOperators = selectedDepartment === '全部'
+    ? operators
+    : operators.filter(op => (op.department || '运营部') === selectedDepartment);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -68,13 +75,26 @@ const Sidebar = ({ operators, selectedOperator, onOperatorChange }) => {
     <div className="sidebar">
       <h2>数据管理</h2>
       <div className="sidebar-section">
+        <label htmlFor="department-select">选择部门:</label>
+        <select
+          id="department-select"
+          value={selectedDepartment}
+          onChange={(e) => setSelectedDepartment(e.target.value)}
+          style={{marginBottom: '10px'}}
+        >
+          {departments.map(dept => (
+            <option key={dept} value={dept}>{dept}</option>
+          ))}
+        </select>
+
         <label htmlFor="operator-select">选择运营成员:</label>
         <select
           id="operator-select"
           value={selectedOperator ? selectedOperator.operator_name : ''}
           onChange={(e) => onOperatorChange(e.target.value)}
         >
-          {operators.map((op) => (
+          <option value="" disabled>请选择人员</option>
+          {filteredOperators.map((op) => (
             <option key={op.operator_name} value={op.operator_name}>
               {op.operator_name}
             </option>
