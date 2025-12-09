@@ -36,7 +36,8 @@ const MainContent = ({ selectedOperator }) => {
 
             try {
                 let score = 0;
-                if (item.category.includes('管理')) {
+                // 支持 "管理" 和 "过程" 类指标直接读取数值作为得分（如果没有公式）
+                if (item.category.includes('管理') || (item.category.includes('过程') && !item.formula)) {
                     score = parseFloat(perfData[item.editable_field_key]) || 0;
                 } else if (item.formula) {
                     const formula = item.formula.toLowerCase();
