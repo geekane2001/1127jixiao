@@ -17,7 +17,7 @@ const MainContent = ({ selectedOperator }) => {
     const [view, setView] = useState('main'); // 'main' or 'history'
 
     const verificationKpi = useMemo(() =>
-        kpiTemplate.find(item => item.indicator.includes('核销总目标')),
+        kpiTemplate.find(item => item.indicator.includes('核销总目标') || item.kpi.includes('核销总目标')),
     [kpiTemplate]);
 
     const calculateScores = useCallback((template, perfData, operator) => {
@@ -27,7 +27,10 @@ const MainContent = ({ selectedOperator }) => {
         const missingFields = [];
 
         template.forEach(item => {
-            if (!item.is_auto_calculated && !perfData[item.editable_field_key]) {
+            // Check if field is empty (undefined, null, or empty string), but allow 0
+            const value = perfData[item.editable_field_key];
+            const isEmpty = value === undefined || value === null || value === '';
+            if (!item.is_auto_calculated && isEmpty) {
                 missingFields.push(`"${item.indicator}" 的 "上月数据"`);
             }
 
@@ -41,7 +44,7 @@ const MainContent = ({ selectedOperator }) => {
                     const avg_score = operator?.avg_score || 0;
                     
                     let total_salary = operator?.total_salary || 0;
-                    if (item.indicator.includes('核销总目标') && !item.is_auto_calculated) {
+                    if ((item.indicator.includes('核销总目标') || item.kpi.includes('核销总目标')) && !item.is_auto_calculated) {
                         total_salary = parseFloat(perfData['verification_total']) || 0;
                     }
 
@@ -49,21 +52,21 @@ const MainContent = ({ selectedOperator }) => {
                     const sales_total = parseFloat(perfData?.sales_total) || 0;
                     
                     score = new Function('weight', 'avg_score', 'total_salary', 'quit_store_count', 'sales_total', `return ${formula}`)(weight, avg_score, total_salary, quit_store_count, sales_total);
+                    }
+    
+                    newScores[item.id] = score;
+    
+                    if (item.category.includes('经营') || item.category.includes('过程')) {
+                        processTotal += score;
+                    } else if (item.category.includes('管理')) {
+                        managementTotal += score;
+                    }
+                } catch (e) {
+                    console.error(`计算指标 "${item.indicator}" 的得分时出错:`, e);
+                    newScores[item.id] = 0;
                 }
-
-                newScores[item.indicator] = score;
-
-                if (item.category.includes('经营') || item.category.includes('过程')) {
-                    processTotal += score;
-                } else if (item.category.includes('管理')) {
-                    managementTotal += score;
-                }
-            } catch (e) {
-                console.error(`计算指标 "${item.indicator}" 的得分时出错:`, e);
-                newScores[item.indicator] = 0;
-            }
-        });
-        setScores(newScores);
+            });
+            setScores(newScores);
         setProcessScoreTotal(processTotal);
         setManagementScoreTotal(managementTotal);
         setTotalScore(processTotal + managementTotal);
@@ -124,11 +127,19 @@ const MainContent = ({ selectedOperator }) => {
             const lastMonthDate = new Date(date.getFullYear(), date.getMonth() - 1, 1);
             const month = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
             
+            // Convert ID-based scores back to KPI-name-based scores for storage and history display
+            const readableScores = {};
+            kpiTemplate.forEach(item => {
+                if (scores[item.id] !== undefined) {
+                    readableScores[item.kpi] = scores[item.id];
+                }
+            });
+
             const payload = {
                 ...performanceData,
                 performance_month: month,
                 person_name: selectedOperator.operator_name,
-                scores: JSON.stringify(scores),
+                scores: JSON.stringify(readableScores),
                 total_score: totalScore,
                 final_score: finalScore
             };
@@ -174,17 +185,17 @@ const MainContent = ({ selectedOperator }) => {
 
     const getLastMonthValue = (item) => {
         if (item.is_auto_calculated) {
-            if (item.indicator.includes('经营分')) {
+            if (item.indicator.includes('经营分') || item.kpi.includes('经营分')) {
                 return `${(selectedOperator.avg_score || 0).toFixed(2)}分`;
             }
-            if (item.indicator.includes('核销总目标')) {
+            if (item.indicator.includes('核销总目标') || item.kpi.includes('核销总目标')) {
                 return `${(selectedOperator.total_salary || 0).toFixed(2)}元`;
             }
             return 'N/A';
         }
         
         let key_to_use = item.editable_field_key;
-        if (item.indicator.includes('核销总目标')) {
+        if (item.indicator.includes('核销总目标') || item.kpi.includes('核销总目标')) {
             key_to_use = 'verification_total';
         }
 
@@ -194,7 +205,7 @@ const MainContent = ({ selectedOperator }) => {
 
         return <input
             type="text"
-            value={performanceData[key_to_use] || ''}
+            value={performanceData[key_to_use] !== undefined && performanceData[key_to_use] !== null ? performanceData[key_to_use] : ''}
             onChange={(e) => handleDataChange(key_to_use, e.target.value)}
         />;
     };
@@ -322,10 +333,10 @@ const MainContent = ({ selectedOperator }) => {
                                     <td>{item.kpi}</td>
                                     <td>{item.weight}</td>
                                     <td>{getLastMonthValue(item)}</td>
-                                    <td>{(scores[item.indicator] || 0).toFixed(2)}</td>
+                                    <td>{(scores[item.id] || 0).toFixed(2)}</td>
                                     <td>
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             value={getRemarksValue(item)}
                                             onChange={(e) => handleRemarksChange(item, e.target.value)}
                                         />
