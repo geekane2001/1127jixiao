@@ -15,6 +15,19 @@ const Sidebar = ({ operators, selectedOperator, onOperatorChange }) => {
     ? operators
     : operators.filter(op => (op.department || '运营部') === selectedDepartment);
 
+  // 当部门切换时，如果当前选中人员不在新列表中，重置选择
+  React.useEffect(() => {
+    if (filteredOperators.length > 0) {
+      // 检查当前选中的人员是否在过滤后的列表中
+      const isSelectedInList = selectedOperator && filteredOperators.some(op => op.operator_name === selectedOperator.operator_name);
+      
+      // 如果不在列表中（比如切换了部门），或者当前没有选中任何人，则默认选中第一个
+      if (!isSelectedInList) {
+        onOperatorChange(filteredOperators[0].operator_name);
+      }
+    }
+  }, [selectedDepartment, filteredOperators, selectedOperator, onOperatorChange]);
+
   const handleSync = async () => {
     setIsSyncing(true);
     alert('正在后台同步最新数据，请稍候...');
