@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 
-const API_URL = 'https://1127jixiao.2963781804.workers.dev';
+const API_URL = 'https://jxbk.jingchaowan.dpdns.org';
 
 const Sidebar = ({ operators, selectedOperator, onOperatorChange }) => {
   const [isSyncing, setIsSyncing] = useState(false);
