@@ -324,7 +324,9 @@ const MainContent = ({ selectedOperator }) => {
                         <thead>
                             <tr>
                                 <th>经营指标</th><th>关键考核指标</th><th>权重</th>
-                                <th>上月数据</th><th>得分</th><th>备注</th>
+                                <th>上月数据</th>
+                                {!(category.includes('过程') || category.includes('管理')) && <th>得分</th>}
+                                <th>备注</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -334,7 +336,7 @@ const MainContent = ({ selectedOperator }) => {
                                     <td>{item.kpi}</td>
                                     <td>{item.weight}</td>
                                     <td>{getLastMonthValue(item)}</td>
-                                    <td>{(scores[item.id] || 0).toFixed(2)}</td>
+                                    {!(category.includes('过程') || category.includes('管理')) && <td>{(scores[item.id] || 0).toFixed(2)}</td>}
                                     <td>
                                         <input
                                             type="text"
