@@ -3,7 +3,7 @@ import History from './History';
 
 const API_URL = 'https://jxbk.jingchaowan.dpdns.org';
 
-const MainContent = ({ selectedOperator }) => {
+const MainContent = ({ selectedOperator, user }) => {
     const [kpiTemplate, setKpiTemplate] = useState([]);
     const [performanceData, setPerformanceData] = useState({});
     const [scores, setScores] = useState({});
@@ -204,6 +204,10 @@ const MainContent = ({ selectedOperator }) => {
             return 'N/A (配置错误)';
         }
 
+        if (user?.role !== 'admin') {
+            return performanceData[key_to_use] !== undefined && performanceData[key_to_use] !== null ? performanceData[key_to_use] : '';
+        }
+
         return <input
             type="text"
             value={performanceData[key_to_use] !== undefined && performanceData[key_to_use] !== null ? performanceData[key_to_use] : ''}
@@ -282,14 +286,14 @@ const MainContent = ({ selectedOperator }) => {
                     </div>
                     <div className="egp-selector" style={{margin: '0 15px', display: 'flex', alignItems: 'center'}}>
                         <label htmlFor="egp-score" style={{marginRight: '5px'}}>EGP 评分: </label>
-                        <select id="egp-score" value={egpScore} onChange={handleEgpChange}>
+                        <select id="egp-score" value={egpScore} onChange={handleEgpChange} disabled={user?.role !== 'admin'}>
                             <option value="1.2">1.2</option>
                             <option value="1">1</option>
                             <option value="0.8">0.8</option>
                             <option value="0">0</option>
                         </select>
                     </div>
-                    {verificationKpi && (
+                    {verificationKpi && user?.role === 'admin' && (
                         <button
                             className="toggle-auto-calc-button"
                             onClick={handleToggleAutoCalculate}
@@ -299,9 +303,11 @@ const MainContent = ({ selectedOperator }) => {
                             {verificationKpi.is_auto_calculated ? '无刷单(自动核销)' : '有刷单(手动核销)'}
                         </button>
                     )}
-                    <button className="save-button" onClick={handleSave} disabled={loading}>
-                        {loading ? '保存中...' : '保存更改'}
-                    </button>
+                    {user?.role === 'admin' && (
+                        <button className="save-button" onClick={handleSave} disabled={loading}>
+                            {loading ? '保存中...' : '保存更改'}
+                        </button>
+                    )}
                     <button className="view-history-button" onClick={() => setView('history')} style={{marginLeft: '10px'}}>
                         查看历史
                     </button>
@@ -338,11 +344,15 @@ const MainContent = ({ selectedOperator }) => {
                                     <td>{getLastMonthValue(item)}</td>
                                     {!(category.includes('过程') || category.includes('管理')) && <td>{(scores[item.id] || 0).toFixed(2)}</td>}
                                     <td>
-                                        <input
-                                            type="text"
-                                            value={getRemarksValue(item)}
-                                            onChange={(e) => handleRemarksChange(item, e.target.value)}
-                                        />
+                                        {user?.role === 'admin' ? (
+                                            <input
+                                                type="text"
+                                                value={getRemarksValue(item)}
+                                                onChange={(e) => handleRemarksChange(item, e.target.value)}
+                                            />
+                                        ) : (
+                                            getRemarksValue(item)
+                                        )}
                                     </td>
                                 </tr>
                             ))}
