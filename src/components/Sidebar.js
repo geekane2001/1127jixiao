@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react';
+import ChangePassword from './ChangePassword';
 
 const API_URL = 'https://jxbk.jingchaowan.dpdns.org';
 
-const Sidebar = ({ operators, selectedOperator, onOperatorChange }) => {
+const Sidebar = ({ operators, selectedOperator, onOperatorChange, user, onLogout }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState('全部');
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const fileInputRef = useRef(null);
 
   const departments = ['全部', ...new Set(operators.map(op => op.department || '运营部'))];
@@ -86,7 +88,21 @@ const Sidebar = ({ operators, selectedOperator, onOperatorChange }) => {
 
   return (
     <div className="sidebar">
-      <h2>数据管理</h2>
+      <div className="sidebar-header" style={{ marginBottom: '20px' }}>
+         <h2 style={{ marginBottom: '10px' }}>数据管理</h2>
+         <div className="user-info" style={{ fontSize: '14px', color: '#666' }}>
+             当前用户: <strong>{user?.username}</strong> ({user?.role === 'admin' ? '管理员' : '员工'})
+         </div>
+         <div className="user-actions" style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+             <button onClick={() => setShowChangePassword(true)} style={{ padding: '5px 10px', fontSize: '12px' }}>修改密码</button>
+             <button onClick={onLogout} style={{ padding: '5px 10px', fontSize: '12px', backgroundColor: '#ff4d4f', color: 'white', border: 'none', borderRadius: '4px' }}>退出</button>
+         </div>
+      </div>
+
+      {showChangePassword && (
+          <ChangePassword username={user.username} onClose={() => setShowChangePassword(false)} />
+      )}
+
       <div className="sidebar-section">
         <label htmlFor="department-select">选择部门:</label>
         <select
@@ -94,6 +110,7 @@ const Sidebar = ({ operators, selectedOperator, onOperatorChange }) => {
           value={selectedDepartment}
           onChange={(e) => setSelectedDepartment(e.target.value)}
           style={{marginBottom: '10px'}}
+          disabled={user?.role === 'yuangong'}
         >
           {departments.map(dept => (
             <option key={dept} value={dept}>{dept}</option>
@@ -105,6 +122,7 @@ const Sidebar = ({ operators, selectedOperator, onOperatorChange }) => {
           id="operator-select"
           value={selectedOperator ? selectedOperator.operator_name : ''}
           onChange={(e) => onOperatorChange(e.target.value)}
+          disabled={user?.role === 'yuangong'}
         >
           <option value="" disabled>请选择人员</option>
           {filteredOperators.map((op) => (
@@ -125,30 +143,34 @@ const Sidebar = ({ operators, selectedOperator, onOperatorChange }) => {
         </div>
       )}
 
-      <div className="sidebar-section">
-        <h3>数据采集</h3>
-        <button className="sync-button" onClick={handleSync} disabled={isSyncing}>
-          {isSyncing ? '同步中...' : '立刻同步'}
-        </button>
-      </div>
+      {user?.role === 'admin' && (
+        <>
+          <div className="sidebar-section">
+            <h3>数据采集</h3>
+            <button className="sync-button" onClick={handleSync} disabled={isSyncing}>
+              {isSyncing ? '同步中...' : '立刻同步'}
+            </button>
+          </div>
 
-      <div className="sidebar-section">
-        <h3>分组管理</h3>
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          style={{ display: 'none' }}
-          accept=".xlsx, .xls"
-        />
-        <button className="upload-button" onClick={handleUploadClick} disabled={isUploading}>
-          选择文件
-        </button>
-        {selectedFile && <span className="file-name">{selectedFile.name}</span>}
-        <button className="sync-button" onClick={handleUpload} disabled={isUploading || !selectedFile} style={{marginTop: '10px'}}>
-          {isUploading ? '上传中...' : '上传分组'}
-        </button>
-      </div>
+          <div className="sidebar-section">
+            <h3>分组管理</h3>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+              accept=".xlsx, .xls"
+            />
+            <button className="upload-button" onClick={handleUploadClick} disabled={isUploading}>
+              选择文件
+            </button>
+            {selectedFile && <span className="file-name">{selectedFile.name}</span>}
+            <button className="sync-button" onClick={handleUpload} disabled={isUploading || !selectedFile} style={{marginTop: '10px'}}>
+              {isUploading ? '上传中...' : '上传分组'}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
