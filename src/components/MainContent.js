@@ -274,7 +274,7 @@ const MainContent = ({ selectedOperator }) => {
     return (
         <div className="main-content">
             <div className="main-header">
-                <h1>{`${new Date().getFullYear()}年${new Date().getMonth() + 1}月 ${selectedOperator.operator_name} 绩效考核表`}</h1>
+                <h1>{`${new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).getFullYear()}年${new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).getMonth() + 1}月 ${selectedOperator.operator_name} 绩效考核表`}</h1>
                 <div className="header-actions">
                     <div className="total-score">
                         月度绩效结果: <span>{finalScore.toFixed(2)}</span>
